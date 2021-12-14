@@ -1,20 +1,23 @@
 // node_moules
 import colors from 'colors';
 import ora from 'ora';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 // config
 import * as configFile from './tools/config.js';
+
 const config = configFile.default
 
 const spinner = ora('Sending Asstets');
-spinner.spinner = config.spinnerType;
+spinner.spinner = process.env.spinnerType;
 
 
 // constants
-let servers = config.servers;
-let apiPort = config.apiPort
-let assetsEachServer = process.argv[2] || config.assetsEachServer;
-let username = process.argv[3] || config.username;
+let servers = JSON.parse(process.env.servers);
+let apiPort = process.env.apiPort
+let assetsEachServer = process.argv[2] || process.env.assetsEachServer;
+let username = process.argv[3] || process.env.username;
 
 
 let addedAssetsObj = {};       // contains the number of added assets for aech server
@@ -30,7 +33,7 @@ for (let key in servers)
     let serverIP = servers[key];
     let serverName = key;
 
-    numOfServers++;
+    numOfServers++;     // count the number of the servers in config file
     addedAssetsObj[serverName] = 0;
 
     becnmarkServers(serverIP, apiPort, serverName, assetsEachServer);
@@ -42,13 +45,16 @@ for (let key in servers)
 function becnmarkServers(ip, port, serverName, numOfAssets)
 {
     let carName;
+    let orgNumber;
 
     for (let i = 0; i < numOfAssets; i++)
     {
+        orgNumber = serverName.match(/\d/g).join("");
         carName = `car_${serverName}_${i+1}`;
 
         axios.post(`http://${ip}:${port}`, {
             username,
+            org: `org${orgNumber}`,
             args: [carName, "Benz", "c240" , "black", "Alireza"]
         })
         .then(response => 
