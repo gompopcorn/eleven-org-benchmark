@@ -87,7 +87,7 @@ function becnmarkServers(ip, port, serverName, numOfAssets)
                     // if all servers done the operation
                     if (doneServers == numOfServers) {
                         let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
-                        spinner.fail(colors.red(`All servers done but some errors!'`));
+                        spinner.fail(colors.bgRed.black(`All servers done but some errors!'`));
                         console.log(colors.yellow(`~ ${totalEndTime} seconds`));
                         console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
                     }
@@ -109,7 +109,7 @@ function becnmarkServers(ip, port, serverName, numOfAssets)
                 // if all servers done the operation
                 if (doneServers == numOfServers) {
                     let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
-                    spinner.fail(colors.red(`All servers done but some errors!'`));
+                    spinner.fail(colors.bgRed.black(`All servers done but some errors!'`));
                     console.log(colors.yellow(`~ ${totalEndTime} seconds`));
                     console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
                 }
