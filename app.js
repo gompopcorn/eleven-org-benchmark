@@ -1,13 +1,10 @@
 // node_moules
 import colors from 'colors';
 import ora from 'ora';
+import axios from 'axios';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-// config
-import * as configFile from './tools/config.js';
-
-const config = configFile.default
 
 const spinner = ora('Sending Asstets');
 spinner.spinner = process.env.spinnerType;
@@ -21,6 +18,7 @@ let username = process.argv[3] || process.env.username;
 
 
 let addedAssetsObj = {};       // contains the number of added assets for aech server
+let failedAssetsObj = {};       // contains the number of failed assets for aech server
 let numOfServers = 0;         // count number of the servers
 let doneServers = 0;         // number of the servers which added all assets
 
@@ -35,6 +33,7 @@ for (let key in servers)
 
     numOfServers++;     // count the number of the servers in config file
     addedAssetsObj[serverName] = 0;
+    failedAssetsObj[serverName] = 0;
 
     becnmarkServers(serverIP, apiPort, serverName, assetsEachServer);
 }
@@ -52,36 +51,84 @@ function becnmarkServers(ip, port, serverName, numOfAssets)
         orgNumber = serverName.match(/\d/g).join("");
         carName = `car_${serverName}_${i+1}`;
 
-        axios.post(`http://${ip}:${port}`, {
+        axios.post(`http://${ip}:${port}/addAsset`, {
             username,
-            org: `org${orgNumber}`,
+            orgName: `org${orgNumber}`,
             args: [carName, "Benz", "c240" , "black", "Alireza"]
         })
         .then(response => 
         {
             addedAssetsObj[serverName]++;
-            doneServers++;
-
-            if (addedAssetsObj[serverName] == numOfAssets) 
+            
+            if (addedAssetsObj[serverName] + failedAssetsObj[serverName] == numOfAssets) 
             {
-                let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
-                spinner.succeed(colors.dim(`Successfully added '${numOfAssets}' assets of the server: [${ip} - ${serverName}] ~ ${elapsedTime} seconds'`));
-                spinner.start();
+                doneServers++;
 
-                // if all servers done the operation
-                if (doneServers == numOfServers) {
-                    let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
-                    spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
-                    console.log(colors.yellow(`~ ${totalEndTime} seconds`));
-                    console.log(colors.blue(`TPS: ${( (numOfServers * numOfAssets) / (totalEndTime) ).toFixed(2)}`));
+                if (!failedAssetsObj[serverName])
+                {
+                    let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
+                    spinner.succeed(colors.dim(`Successfully added '${numOfAssets}' assets of the server: [${ip} - ${serverName}] ~ ${endTime} seconds'`));
+                    spinner.start();
+    
+                    // if all servers done the operation
+                    if (doneServers == numOfServers) {
+                        let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
+                        spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
+                        console.log(colors.yellow(`~ ${totalEndTime} seconds`));
+                        console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
+                    }
+                }
+
+                else {
+                    let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
+                    spinner.fail(colors.dim(`'${addedAssetsObj[serverName]}' assets addes and '${failedAssetsObj[serverName]}' assets failed of the server: [${ip} - ${serverName}] ~ ${endTime} seconds'`));
+                    spinner.start();
+    
+                    // if all servers done the operation
+                    if (doneServers == numOfServers) {
+                        let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
+                        spinner.fail(colors.red(`All servers done but some errors!'`));
+                        console.log(colors.yellow(`~ ${totalEndTime} seconds`));
+                        console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
+                    }
                 }
             }
 
         })
-        .catch(error => {
-            spinner.fail(colors.bgRed(`Error in sending data to server: [${ip} - ${serverName}] - ${carName}`));
-            console.log(colors.red(error));
+        .catch(error => 
+        {
+            failedAssetsObj[serverName]++;
+            spinner.fail(colors.bgRed(`\nError in sending data to server: [${ip} - ${serverName}] - ${carName}`));
+            console.log(colors.red(error.response.data + "\n"));
             spinner.start();
+
+            if (addedAssetsObj[serverName] + failedAssetsObj[serverName] == numOfAssets)
+            {
+                doneServers++;
+
+                // if all servers done the operation
+                if (doneServers == numOfServers) {
+                    let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
+                    spinner.fail(colors.red(`All servers done but some errors!'`));
+                    console.log(colors.yellow(`~ ${totalEndTime} seconds`));
+                    console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
+                }
+            }
         });
     }
+}
+
+
+
+function calculateTPS(totalTime)
+{
+    let totalAddedAssets = 0;
+
+    for (let host in addedAssetsObj) {
+        totalAddedAssets+= addedAssetsObj[host];
+    }
+
+    let tps = (totalAddedAssets / totalTime).toFixed(2);
+
+    return tps;
 }
