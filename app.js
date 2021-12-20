@@ -11,16 +11,18 @@ spinner.spinner = process.env.spinnerType;
 
 
 // constants
-let servers = JSON.parse(process.env.servers);
+// let servers = JSON.parse(process.env.servers);
+let servers = JSON.parse(process.env.testServers1);
+let numOfServers = +Object.keys(JSON.parse(process.env.testServers1)).length;    // count number of the servers
 let apiPort = process.env.apiPort
-let assetsEachServer = process.argv[2] || process.env.assetsEachServer;
+let assetsEachServer = +process.argv[2] || +process.env.assetsEachServer;
 let username = process.argv[3] || process.env.username;
 
-
 let addedAssetsObj = {};       // contains the number of added assets for aech server
-let failedAssetsObj = {};       // contains the number of failed assets for aech server
-let numOfServers = 0;         // count number of the servers
+let failedAssetsObj = {};     // contains the number of failed assets for aech server
 let doneServers = 0;         // number of the servers which added all assets
+
+console.log(colors.bgBlue.black(`\n* Starting to send ${numOfServers*assetsEachServer} assets with ${numOfServers} servers - ${assetsEachServer} assets each server\n`));
 
 let startTime = Date.now() / 1000;
 spinner.start();
@@ -31,7 +33,6 @@ for (let key in servers)
     let serverIP = servers[key];
     let serverName = key;
 
-    numOfServers++;     // count the number of the servers in config file
     addedAssetsObj[serverName] = 0;
     failedAssetsObj[serverName] = 0;
 
@@ -39,17 +40,17 @@ for (let key in servers)
 }
 
 
-
 // send assets to all servers
 function becnmarkServers(ip, port, serverName, numOfAssets)
 {
     let carName;
     let orgNumber;
-
+    
     for (let i = 0; i < numOfAssets; i++)
     {
         orgNumber = serverName.match(/\d/g).join("");
         carName = `car_${serverName}_${i+1}`;
+
 
         axios.post(`http://${ip}:${port}/addAsset`, {
             username,
@@ -64,7 +65,7 @@ function becnmarkServers(ip, port, serverName, numOfAssets)
             {
                 doneServers++;
 
-                if (!failedAssetsObj[serverName])
+                if (!failedAssetsObj[numOfServers])
                 {
                     let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
                     spinner.succeed(colors.dim(`Successfully added '${numOfAssets}' assets of the server: [${ip} - ${serverName}] ~ ${endTime} seconds'`));
