@@ -12,8 +12,8 @@ spinner.spinner = process.env.spinnerType;
 
 // constants
 // let servers = JSON.parse(process.env.servers);
-let servers = JSON.parse(process.env.testServers1);
-let numOfServers = +Object.keys(JSON.parse(process.env.testServers1)).length;    // count number of the servers
+let servers = JSON.parse(process.env.mobinServers);
+let numOfServers = +Object.keys(JSON.parse(process.env.mobinServers)).length;    // count number of the servers
 let apiPort = process.env.apiPort
 let assetsEachServer = +process.argv[2] || +process.env.assetsEachServer;
 let username = process.argv[3] || process.env.username;
@@ -36,26 +36,75 @@ for (let key in servers)
     addedAssetsObj[serverName] = 0;
     failedAssetsObj[serverName] = 0;
 
-    becnmarkServers(serverIP, apiPort, serverName, assetsEachServer);
+    // becnmarkServersBatch(serverIP, apiPort, serverName, assetsEachServer);
+    becnmarkServers(serverIP, apiPort, serverName);
 }
 
 
-// send assets to all servers
-function becnmarkServers(ip, port, serverName, numOfAssets)
+// tell servers how to add assets intervally
+function becnmarkServers(ip, port, serverName)
+{
+    let orgNumber = +serverName.match(/\d/g).join("");
+    
+    axios.post(`http://${ip}:${port}/addAsset`, {
+        username,
+        orgName: `org${orgNumber}`,
+        numOfAssets: assetsEachServer,
+        startFrom: (orgNumber * assetsEachServer) - assetsEachServer + 1
+    })
+    .then(response => 
+    {
+        doneServers++;
+
+        let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
+        spinner.succeed(colors.green(response.data + ` - [${ip} - ${serverName}] ~ ${endTime} seconds'`));
+        spinner.start();
+
+        // if all servers done the operation
+        if (doneServers == numOfServers) {
+            let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
+            spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
+            console.log(colors.yellow(`~ ${totalEndTime} seconds`));
+            console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime, assetsEachServer)}`));
+        }
+    })
+    .catch(error => 
+    {
+        doneServers++;
+
+        spinner.fail(colors.bgRed(`\nError in sending data to server: [${ip} - ${serverName}]`));
+        console.log(colors.red(error + "\n"));
+        spinner.start();
+
+        // if all servers done the operation
+        if (doneServers == numOfServers) {
+            let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
+            spinner.fail(colors.bgRed.black(`All servers done but some errors!'`));
+            console.log(colors.yellow(`~ ${totalEndTime} seconds`));
+            console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
+        }
+    });
+}
+
+
+// send assets to all servers one by one
+function becnmarkServersBatch(ip, port, serverName, numOfAssets)
 {
     let carName;
-    let orgNumber;
+    let orgNumber = +serverName.match(/\d/g).join("");
     
     for (let i = 0; i < numOfAssets; i++)
     {
-        orgNumber = serverName.match(/\d/g).join("");
+        // if (orgNumber == 6) orgNumber = 1;
+        // if (orgNumber == 7) orgNumber = 2;
+
         carName = `car_${serverName}_${i+1}`;
 
 
-        axios.post(`http://${ip}:${port}/addAsset`, {
+        axios.post(`http://${ip}:${port}/addAssetBatch`, {
             username,
             orgName: `org${orgNumber}`,
-            args: [carName, "Benz", "c240" , "black", "Alireza"]
+            args: [carName, "Benz", "c240" , "black", "alireza"]
         })
         .then(response => 
         {
@@ -121,15 +170,23 @@ function becnmarkServers(ip, port, serverName, numOfAssets)
 
 
 
-function calculateTPS(totalTime)
+function calculateTPS(totalTime, numOfAssets)
 {
-    let totalAddedAssets = 0;
+    let tps;
 
-    for (let host in addedAssetsObj) {
-        totalAddedAssets+= addedAssetsObj[host];
+    if (numOfAssets) {
+        tps = (numOfAssets / totalTime).toFixed(2);
     }
 
-    let tps = (totalAddedAssets / totalTime).toFixed(2);
+    else {
+        let totalAddedAssets = 0;
+    
+        for (let host in addedAssetsObj) {
+            totalAddedAssets+= addedAssetsObj[host];
+        }
+    
+        tps = (totalAddedAssets / totalTime).toFixed(2);
+    }
 
     return tps;
 }
