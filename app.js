@@ -17,6 +17,7 @@ let numOfServers = +Object.keys(JSON.parse(process.env.mobinServers)).length;   
 let apiPort = process.env.apiPort
 let assetsEachServer = +process.argv[2] || +process.env.assetsEachServer;
 let username = process.argv[3] || process.env.username;
+let multiFileAdd_boolean = process.argv[4] || false;
 
 let addedAssetsObj = {};       // contains the number of added assets for aech server
 let failedAssetsObj = {};     // contains the number of failed assets for aech server
@@ -45,8 +46,13 @@ for (let key in servers)
 function becnmarkServers(ip, port, serverName)
 {
     let orgNumber = +serverName.match(/\d/g).join("");
+
+    let url = `http://${ip}:${port}/addAssetBatch`;
+    if (multiFileAdd_boolean) {
+        url = `http://${ip}:${port}/addAssetBatch_multiFile`
+    }
     
-    axios.post(`http://${ip}:${port}/addAsset`, {
+    axios.post(url, {
         username,
         orgName: `org${orgNumber}`,
         numOfAssets: assetsEachServer,
@@ -101,7 +107,7 @@ function becnmarkServersBatch(ip, port, serverName, numOfAssets)
         carName = `car_${serverName}_${i+1}`;
 
 
-        axios.post(`http://${ip}:${port}/addAssetBatch`, {
+        axios.post(`http://${ip}:${port}/addAsset`, {
             username,
             orgName: `org${orgNumber}`,
             args: [carName, "Benz", "c240" , "black", "alireza"]
@@ -175,7 +181,7 @@ function calculateTPS(totalTime, numOfAssets)
     let tps;
 
     if (numOfAssets) {
-        tps = (numOfAssets / totalTime).toFixed(2);
+        tps = ((numOfAssets*numOfServers) / totalTime).toFixed(2);
     }
 
     else {

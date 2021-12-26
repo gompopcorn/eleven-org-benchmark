@@ -1,2 +1,2 @@
-# node app.js $assetsEachServer $username
-node app.js 50 Alireza
+# node app.js $assetsEachServer $username $multiFileAdd_boolean
+node app.js 50 Alireza true
