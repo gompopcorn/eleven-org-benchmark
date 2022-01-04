@@ -20,6 +20,11 @@ let assetsEachServer = (assetsToAdd / numOfServers) || +process.env.assetsEachSe
 let username = process.argv[3] || process.env.username;
 let multiFileAdd_boolean = process.argv[4] || false;
 
+if (assetsToAdd % numOfServers !== 0) {
+    console.log(colors.yellow("\n" + ` *** Number of assets MUST be a multiplication of '${numOfServers}' ***` + "\n"));
+    process.exit(0);
+}
+
 let addedAssetsObj = {};       // contains the number of added assets for aech server
 let failedAssetsObj = {};     // contains the number of failed assets for aech server
 let doneServers = 0;         // number of the servers which added all assets
@@ -62,7 +67,7 @@ function becnmarkServers(ip, port, serverName)
     })
     .then(response => 
     {
-        let serverAvgLatency = +response.data.match(/(?<=avgLatency: +)(.*)(?= ms)/gis).pop();
+        let serverAvgLatency = +response.data.match(/(?<=avgLatency: +)(.*?)(?= ms)/gis).pop();
         totalAvgLatency += serverAvgLatency;
         doneServers++;
         
@@ -73,7 +78,7 @@ function becnmarkServers(ip, port, serverName)
         // if all servers done the operation
         if (doneServers == numOfServers) {
             let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
-            spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
+            spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.`));
 
             console.log("--------------------------------");
             
@@ -139,7 +144,7 @@ function becnmarkServersBatch(ip, port, serverName, numOfAssets)
                     // if all servers done the operation
                     if (doneServers == numOfServers) {
                         let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
-                        spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
+                        spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.`));
                         console.log(colors.yellow(`~ ${totalEndTime} seconds`));
                         console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime)}`));
                     }
