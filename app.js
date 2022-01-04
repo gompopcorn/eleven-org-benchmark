@@ -74,9 +74,14 @@ function becnmarkServers(ip, port, serverName)
         if (doneServers == numOfServers) {
             let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
             spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
+
+            console.log("--------------------------------");
+            
             console.log(colors.yellow(`~ ${totalEndTime} seconds`));
             console.log(colors.blue(`* TPS: ${calculateTPS(totalEndTime, assetsEachServer)}`));
             console.log(colors.cyan(`~ avgLatency: ${(totalAvgLatency / numOfServers).toFixed(2)} ms`));
+            
+            console.log("--------------------------------");
         }
     })
     .catch(error => 
