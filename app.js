@@ -12,16 +12,18 @@ spinner.spinner = process.env.spinnerType;
 
 // constants
 // let servers = JSON.parse(process.env.servers);
-let servers = JSON.parse(process.env.mobinServers);
-let numOfServers = +Object.keys(JSON.parse(process.env.mobinServers)).length;    // count number of the servers
+let servers = JSON.parse(process.env.testServers2);
+let numOfServers = +Object.keys(JSON.parse(process.env.testServers2)).length;    // count number of the servers
 let apiPort = process.env.apiPort
-let assetsEachServer = +process.argv[2] || +process.env.assetsEachServer;
+let assetsToAdd = +process.argv[2];
+let assetsEachServer = (assetsToAdd / numOfServers) || +process.env.assetsEachServer;
 let username = process.argv[3] || process.env.username;
 let multiFileAdd_boolean = process.argv[4] || false;
 
 let addedAssetsObj = {};       // contains the number of added assets for aech server
 let failedAssetsObj = {};     // contains the number of failed assets for aech server
 let doneServers = 0;         // number of the servers which added all assets
+let totalAvgLatency = 0;    // average of all servers latency for adding assets
 
 console.log(colors.bgBlue.black(`\n* Starting to send ${numOfServers*assetsEachServer} assets with ${numOfServers} servers - ${assetsEachServer} assets each server\n`));
 
@@ -60,8 +62,10 @@ function becnmarkServers(ip, port, serverName)
     })
     .then(response => 
     {
+        let serverAvgLatency = +response.data.match(/(?<=avgLatency: +)(.*)(?= ms)/gis).pop();
+        totalAvgLatency += serverAvgLatency;
         doneServers++;
-
+        
         let endTime = ((Date.now() / 1000) - startTime).toFixed(2);
         spinner.succeed(colors.green(response.data + ` - [${ip} - ${serverName}] ~ ${endTime} seconds'`));
         spinner.start();
@@ -71,7 +75,8 @@ function becnmarkServers(ip, port, serverName)
             let totalEndTime = ((Date.now() / 1000) - startTime).toFixed(2);
             spinner.succeed(colors.green(`All assets of '${numOfServers}' servers added successfully.'`));
             console.log(colors.yellow(`~ ${totalEndTime} seconds`));
-            console.log(colors.blue(`TPS: ${calculateTPS(totalEndTime, assetsEachServer)}`));
+            console.log(colors.blue(`* TPS: ${calculateTPS(totalEndTime, assetsEachServer)}`));
+            console.log(colors.cyan(`~ avgLatency: ${(totalAvgLatency / numOfServers).toFixed(2)} ms`));
         }
     })
     .catch(error => 
